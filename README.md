@@ -50,21 +50,46 @@
 | `feature/N-이름` | 기능 구현 | release/** | 이슈 Milestone 할당 후 생성 |
 | `hotfix/N-이름` | 긴급 장애 패치 | main | 패치 버전 릴리즈로 직행 |
 
+## Claude Workflow Commands (`/wf-*`)
+
+개발 전 과정을 Claude slash command로 실행한다.
+각 단계는 완료 조건에 따라 자동 또는 사용자 확인으로 다음 단계로 전환된다.
+
+| 커맨드 | 단계 | 전환 조건 |
+|--------|------|----------|
+| `/wf-intake` | 1. 요건 수신 | auto → analysis |
+| `/wf-analysis` | 2. 요건 분석 | user_confirm → planning |
+| `/wf-planning` | 3. 태스크 분리 | user_confirm → backlog |
+| `/wf-backlog` | 4. 백로그 등록 | auto → waiting |
+| `/wf-release-plan [버전]` | 5. 릴리즈 계획 | user_trigger → implement |
+| `/wf-implement [이슈번호]` | 6. 구현 | user_confirm → test |
+| `/wf-test` | 7. 테스트 | user_confirm → deploy / fail → implement |
+| `/wf-deploy` | 8. 배포 | auto → monitor |
+| `/wf-monitor` | 9. 모니터링 | auto → intake (새 이슈 시) |
+| `/wf-hotfix "증상"` | 긴급 패치 | 1~5단계 스킵, main 직행 |
+| `/wf-status` | 상태 확인 | 언제든지 |
+
+→ [워크플로우 상세 설계](workflow/WORKFLOW_DESIGN.md)
+
 ## 폴더 구성 (각 프로젝트 repo)
 
 ```
 my-project/
+├── .claude/
+│   └── commands/            # Claude /wf-* 커맨드
+│       ├── wf-intake.md
+│       ├── wf-analysis.md
+│       └── ...
 ├── .github/
 │   ├── ISSUE_TEMPLATE/
-│   │   ├── feature.md
-│   │   └── bug.md
 │   ├── PULL_REQUEST_TEMPLATE.md
 │   └── workflows/
-│       └── notify-slack.yml
+├── .workflow/
+│   └── state.json           # 현재 워크플로우 상태 추적
 ├── docs/
-│   ├── prd/
-│   │   └── v1.0.md          # 기획 문서
-│   └── decisions/           # 아키텍처 결정 기록 (ADR)
+│   ├── inbox/               # 원문 요청 저장소
+│   ├── prd/                 # 기획 문서
+│   └── decisions/           # ADR
 ├── CHANGELOG.md
 └── README.md
 ```

@@ -1,0 +1,153 @@
+name: Solo Dev Workflow
+version: "1.0"
+description: 1인 개발자를 위한 아이디어/요건 → 배포 → 모니터링 전체 워크플로우
+
+tracks:
+  issue:
+    description: 개별 요건/이슈 처리
+    stages: [intake, analysis, planning, backlog, waiting]
+  release:
+    description: 릴리즈 단위 처리
+    stages: [release_plan, implement, test, deploy, monitor]
+
+stages:
+  intake:
+    name: "요건 수신"
+    command: wf-intake
+    description: 요청을 해석 없이 원문 그대로 inbox에 저장
+    inputs:
+      content: "수신한 요청 내용 (원문)"
+      source: "수신 경로: appstore | verbal | direct | other"
+    outputs:
+      - "docs/inbox/YYYY-MM-DD-[source]-[slug].md 파일 생성"
+    transitions:
+      - to: analysis
+        trigger: auto
+
+  analysis:
+    name: "요건 분석"
+    command: wf-analysis
+    description: Claude와 함께 요건을 분석하고 실행 가능한 이슈로 정제
+    inputs:
+      inbox_file: "분석할 inbox 파일 경로 (없으면 최신 파일 자동 선택)"
+    outputs:
+      - "문제 정의, 범위, 구현 방향, 리스크 분석 결과"
+    transitions:
+      - to: planning
+        trigger: user_confirm
+        prompt: "분석 결과를 확인했습니까? 태스크 분리 단계로 넘어갑니다."
+      - to: intake
+        trigger: user_reject
+        prompt: "요건을 다시 수집합니다."
+
+  planning:
+    name: "태스크 분리"
+    command: wf-planning
+    description: 분석된 요건을 1일 이내 완료 가능한 단위의 태스크로 분리
+    outputs:
+      - "태스크 목록 (완료 조건 포함)"
+    transitions:
+      - to: backlog
+        trigger: user_confirm
+        prompt: "태스크 목록을 확정합니까?"
+
+  backlog:
+    name: "백로그 등록"
+    command: wf-backlog
+    description: 확정된 태스크를 GitHub Issues로 등록 (Milestone 미할당)
+    outputs:
+      - "GitHub Issues 생성"
+      - "inbox 파일에 Issue 번호 기록"
+    transitions:
+      - to: waiting
+        trigger: auto
+
+  waiting:
+    name: "릴리즈 대기"
+    description: Milestone 할당까지 backlog에서 대기. 릴리즈 결정 시 release_plan으로.
+    transitions:
+      - to: release_plan
+        trigger: user_trigger
+        prompt: "릴리즈를 시작하려면 /wf-release-plan [version] 을 실행하세요."
+
+  release_plan:
+    name: "릴리즈 계획"
+    command: wf-release-plan
+    description: Backlog에서 이번 릴리즈 이슈 선택, Milestone 생성, release 브랜치 생성
+    inputs:
+      version: "릴리즈 버전 (예: v1.0.2)"
+    outputs:
+      - "GitHub Milestone 생성"
+      - "선택한 이슈에 Milestone 할당"
+      - "release/vX.Y.Z 브랜치 생성 (main 기준)"
+      - ".workflow/state.json 업데이트"
+    transitions:
+      - to: implement
+        trigger: auto
+
+  implement:
+    name: "구현"
+    command: wf-implement
+    description: feature 브랜치 생성, 개발, develop 테스트, release merge
+    inputs:
+      issue_number: "구현할 GitHub Issue 번호"
+    sub_stages:
+      - feature_branch_created: "feature/N-이름 브랜치 생성 (release/* 기준)"
+      - development_complete: "개발 완료, 커밋"
+      - develop_tested: "develop 브랜치에 merge 후 테스트"
+      - release_merged: "feature/* → release/* PR merge"
+    outputs:
+      - "feature 브랜치 구현 완료"
+      - "release/* 브랜치에 반영"
+    transitions:
+      - to: implement
+        trigger: user
+        label: "다음 issue 구현 시작"
+      - to: test
+        trigger: user_confirm
+        condition: "모든 milestone 이슈가 release에 merge 완료"
+        label: "전체 구현 완료, 테스트 단계로"
+
+  test:
+    name: "테스트"
+    command: wf-test
+    description: release/* 브랜치 기준으로 milestone 이슈 전체 검증
+    outputs:
+      - "이슈별 완료 조건 체크 결과"
+    transitions:
+      - to: deploy
+        trigger: user_confirm
+        label: "모든 테스트 통과"
+      - to: implement
+        trigger: user_reject
+        label: "실패한 이슈 재구현"
+
+  deploy:
+    name: "배포"
+    command: wf-deploy
+    description: release/* → main merge, git tag, GitHub Release, CHANGELOG 업데이트
+    outputs:
+      - "release/* → main PR merge"
+      - "git tag vX.Y.Z"
+      - "GitHub Release 생성"
+      - "CHANGELOG.md 업데이트"
+    transitions:
+      - to: monitor
+        trigger: auto
+
+  monitor:
+    name: "모니터링"
+    command: wf-monitor
+    description: 배포 후 Slack 알림 확인, 오류 추적
+    transitions:
+      - to: intake
+        trigger: auto
+        condition: "새 이슈 감지 또는 신규 요건"
+
+hotfix:
+  name: "긴급 패치"
+  command: wf-hotfix
+  description: 프로덕션 장애 대응. intake → analysis 후 hotfix/* → main 직행.
+  skips: [planning, backlog, waiting, release_plan]
+  branch_base: main
+  version_bump: patch
