@@ -1,0 +1,35 @@
+name: Slack Notification
+
+on:
+  push:
+    branches: [main]
+  release:
+    types: [published]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify on push to main
+        if: github.event_name == 'push'
+        uses: slackapi/slack-github-action@v1.26.0
+        with:
+          payload: |
+            {
+              "text": "🔀 *${{ github.repository }}* — main 업데이트\n>${{ github.event.head_commit.message }}\n<${{ github.event.head_commit.url }}|커밋 보기>"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+
+      - name: Notify on release
+        if: github.event_name == 'release'
+        uses: slackapi/slack-github-action@v1.26.0
+        with:
+          payload: |
+            {
+              "text": "🚀 *${{ github.repository }}* `${{ github.event.release.tag_name }}` 릴리즈\n>${{ github.event.release.name }}\n<${{ github.event.release.html_url }}|릴리즈 노트 보기>"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
