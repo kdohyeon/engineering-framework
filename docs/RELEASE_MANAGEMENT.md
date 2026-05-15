@@ -1,5 +1,8 @@
 # 릴리즈 관리
 
+> **이 문서는 릴리즈 실행 절차를 다룬다.**  
+> 무엇을 넣을지, 롤백 전략, 모니터링, 이해관계자 커뮤니케이션은 [RELEASE_PLANNING.md](RELEASE_PLANNING.md)를 먼저 완료한다.
+
 ## 버전 규칙 (Semantic Versioning)
 
 ```

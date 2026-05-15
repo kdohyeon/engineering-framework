@@ -55,10 +55,11 @@
 
 ## 3단계: Milestone 할당 (릴리즈 계획 시)
 
-릴리즈를 계획할 때 Backlog에서 이슈를 꺼내 Milestone에 할당한다.
+릴리즈를 계획할 때 Backlog에서 이슈를 꺼내 Milestone에 할당한다.  
+선정 기준, 버전 결정, 롤백 전략, 모니터링 계획은 → [RELEASE_PLANNING.md](RELEASE_PLANNING.md)
 
 ```
-Backlog 이슈 목록 검토
+Backlog 이슈 목록 검토 (RELEASE_PLANNING.md Step 1-2 수행)
     ↓
 이번 릴리즈(v1.1.0)에 넣을 것들 선택
     ↓

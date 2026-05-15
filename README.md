@@ -76,7 +76,8 @@ my-project/
 - [Backlog 관리 (Claude 상의 → 티켓 등록)](docs/BACKLOG_MANAGEMENT.md)
 - [브랜치 전략](docs/BRANCH_STRATEGY.md)
 - [이슈 & 마일스톤 관리](docs/ISSUE_MANAGEMENT.md)
-- [릴리즈 관리](docs/RELEASE_MANAGEMENT.md)
+- [릴리즈 계획 (선정 기준, 버전 결정, 롤백, 모니터링, 커뮤니케이션)](docs/RELEASE_PLANNING.md)
+- [릴리즈 관리 (브랜치, 태그, 배포 실행)](docs/RELEASE_MANAGEMENT.md)
 - [커밋 컨벤션](docs/COMMIT_CONVENTION.md)
 - [Slack 알림 연동](docs/SLACK_INTEGRATION.md)
 
